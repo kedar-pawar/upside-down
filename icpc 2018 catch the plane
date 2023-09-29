@@ -1,0 +1,87 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+typedef struct Route {
+  int B, E;
+  long long S, T;
+  double P, value;
+} Route;
+
+int compare_routes(const void *a, const void *b) {
+  Route *r1 = (Route *)a;
+  Route *r2 = (Route *)b;
+  if (r1->B != r2->B) {
+    return r1->B - r2->B;
+  }
+  return r1->S - r2->S;
+}
+
+int main() {
+  int M, N;
+  long long K;
+
+  while (scanf("%d%d%lld", &M, &N, &K)) {
+    Route v[M+1];
+    for (int i = 0; i < M; i++) {
+      scanf("%d%d%lld%lld%lf", &v[i].B, &v[i].E, &v[i].S, &v[i].T, &v[i].P);
+      v[i].value = 0.0;
+    }
+    v[M].B = 1; v[M].S = K+1; v[M].value = 1.0;
+    qsort(v, M+1, sizeof(Route), compare_routes);
+
+    int ord[M+1][2];
+    for (int i = 0; i <= M; i++) {
+      ord[i][0] = -v[i].S;
+      ord[i][1] = -i;
+    }
+    qsort(ord, M+1, 2*sizeof(int), compare_routes);
+
+    double prob = 0.0;
+    for (int i = 0; i <= M; i++) {
+      if (-ord[i][0] <= K) {
+        int idx = -ord[i][1];
+        Route *r = &v[idx];
+        r->value = 0.0;
+
+        Route r2;
+
+        r2.B = r->B;
+        r2.S = r->S;
+        Route *it = NULL;
+        for (int j = 0; j <= M; j++) {
+          if (compare_routes(&v[j], &r2) > 0) {
+            it = &v[j];
+            break;
+          }
+        }
+        if (it != NULL && it->B == r->B) {
+          r->value += (1.0-r->P) * it->value;  // Miss route.
+        }
+
+        r2.B = r->E;
+        r2.S = r->T;
+        it = NULL;
+        for (int j = 0; j <= M; j++) {
+          if (compare_routes(&v[j], &r2) > 0) {
+            it = &v[j];
+            break;
+          }
+        }
+        if (it != NULL && it->B == r->E) {
+          r->value += r->P * it->value;  // Catch route.
+        }
+
+        if (idx < M && v[idx+1].B == v[idx].B) {
+          r->value = r->value > v[idx+1].value ? r->value : v[idx+1].value;  // Don't try route at all.
+        }
+
+        if (r->B == 0) {
+          prob = prob > r->value ? prob : r->value;
+        }
+      }
+    }
+    printf("%0.8lf\n", prob);
+  }
+
+  return 0;
+}
